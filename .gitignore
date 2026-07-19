@@ -2,5 +2,7 @@
 .worktrees/
 .next/
 node_modules/
+playwright-report/
+test-results/
 .env*
 !.env.example

@@ -12,6 +12,12 @@ import { parseRecipients } from "@/lib/recipients";
 
 type Notice = { type: "success" | "error"; text: string } | null;
 type FieldError = { field: "file" | "recipients" | "subject"; text: string } | null;
+type SendResult = {
+  ok: boolean;
+  acceptedCount?: number;
+  failedRecipients?: string[];
+  error?: string;
+};
 
 export function EmailSender() {
   const [fileName, setFileName] = useState("");
@@ -84,12 +90,20 @@ export function EmailSender() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ recipients: parsed.recipients, subject: subject.trim(), html }),
         });
-        const result = (await response.json()) as { ok: boolean; count?: number; error?: string };
+        const result = (await response.json()) as SendResult;
+        const acceptedCount = result.acceptedCount ?? 0;
+        const failedRecipients = result.failedRecipients ?? [];
         if (!response.ok || !result.ok) {
-          setNotice({ type: "error", text: result.error || "邮件发送失败，请稍后重试。" });
+          const failedText = failedRecipients.length
+            ? ` 失败地址：${failedRecipients.join("、")}。`
+            : "";
+          setNotice({
+            type: "error",
+            text: `${acceptedCount ? `邮件服务器已接受 ${acceptedCount} 封；` : ""}${result.error || "邮件发送失败，请稍后重试。"}${failedText}`,
+          });
           return;
         }
-        setNotice({ type: "success", text: `已成功发送 ${result.count ?? 0} 封邮件。` });
+        setNotice({ type: "success", text: `邮件服务器已接受 ${acceptedCount} 封邮件。` });
       } catch {
         setNotice({ type: "error", text: "邮件发送失败，请检查网络后重试。" });
       }
@@ -163,7 +177,7 @@ export function EmailSender() {
               ) : null}
             </div>
             <p className="text-sm text-muted-foreground">
-              默认 resend.dev 发件域名只能投递到 Resend 账户邮箱；发给其他人前请先验证自有域名。
+              使用 Gmail SMTP 逐封发送；邮件服务器接受后仍可能进入垃圾邮件或推广分类。
             </p>
             {notice ? (
               <Alert variant={notice.type === "error" ? "destructive" : "default"}>

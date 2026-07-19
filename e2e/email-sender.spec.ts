@@ -16,14 +16,19 @@ test("上传、校验并发送 HTML 邮件", async ({ page }) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ ok: true, count: 2 }),
+        body: JSON.stringify({ ok: true, acceptedCount: 2, failedRecipients: [] }),
       });
       return;
     }
     await route.fulfill({
-      status: 502,
+      status: 207,
       contentType: "application/json",
-      body: JSON.stringify({ ok: false, error: "邮件发送失败，请稍后重试。" }),
+      body: JSON.stringify({
+        ok: false,
+        acceptedCount: 1,
+        failedRecipients: ["b@example.com"],
+        error: "部分邮件未被服务器接受，请检查失败地址后重试。",
+      }),
     });
   });
 
@@ -76,7 +81,9 @@ test("上传、校验并发送 HTML 邮件", async ({ page }) => {
   await expect(page.getByRole("button", { name: "正在发送…" })).toBeDisabled();
   releaseFirstSend();
 
-  await expect(page.getByRole("alert").filter({ hasText: "已成功发送 2 封邮件" })).toBeVisible();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "邮件服务器已接受 2 封邮件" }),
+  ).toBeVisible();
   expect(payload).toEqual({
     recipients: ["a@example.com", "b@example.com"],
     subject: "测试邮件",
@@ -85,6 +92,9 @@ test("上传、校验并发送 HTML 邮件", async ({ page }) => {
 
   await page.getByRole("button", { name: "发送邮件" }).click();
   await expect(
-    page.getByRole("alert").filter({ hasText: "邮件发送失败，请稍后重试。" }),
+    page
+      .getByRole("alert")
+      .filter({ hasText: "邮件服务器已接受 1 封" })
+      .filter({ hasText: "失败地址：b@example.com" }),
   ).toBeVisible();
 });

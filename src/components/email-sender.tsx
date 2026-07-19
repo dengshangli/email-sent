@@ -1,17 +1,17 @@
 "use client";
 
-import { useDeferredValue, useState, useTransition, type DragEvent, type FormEvent } from "react";
+import { useState, useTransition, type DragEvent, type FormEvent } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { MAX_HTML_BYTES, getUtf8ByteLength } from "@/lib/email-limits";
+import { MAX_HTML_BYTES } from "@/lib/email-limits";
 import { parseRecipients } from "@/lib/recipients";
 
 type Notice = { type: "success" | "error"; text: string } | null;
-type FieldError = { field: "file" | "html" | "recipients" | "subject"; text: string } | null;
+type FieldError = { field: "file" | "recipients" | "subject"; text: string } | null;
 
 export function EmailSender() {
   const [fileName, setFileName] = useState("");
@@ -21,12 +21,13 @@ export function EmailSender() {
   const [notice, setNotice] = useState<Notice>(null);
   const [fieldError, setFieldError] = useState<FieldError>(null);
   const [sending, startSending] = useTransition();
-  const deferredHtml = useDeferredValue(html);
 
   async function loadFile(file?: File) {
     setNotice(null);
     setFieldError(null);
     if (!file) return;
+    setHtml("");
+    setFileName("");
     if (!file.name.toLowerCase().endsWith(".html")) {
       setFieldError({ field: "file", text: "请选择 .html 文件。" });
       return;
@@ -72,11 +73,7 @@ export function EmailSender() {
       return;
     }
     if (!html.trim()) {
-      setFieldError({ field: "html", text: "请上传或输入 HTML 邮件内容。" });
-      return;
-    }
-    if (getUtf8ByteLength(html) > MAX_HTML_BYTES) {
-      setFieldError({ field: "html", text: "HTML 内容不能超过 1 MB。" });
+      setFieldError({ field: "file", text: "请上传 HTML 邮件文件。" });
       return;
     }
 
@@ -100,19 +97,19 @@ export function EmailSender() {
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+    <main className="mx-auto min-h-screen max-w-3xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
       <header className="space-y-2">
         <p className="text-sm font-medium text-muted-foreground">内部工具</p>
         <h1 className="text-3xl font-semibold tracking-tight">邮件发送平台</h1>
-        <p className="text-muted-foreground">上传并检查 HTML 内容，然后发送给指定收件人。</p>
+        <p className="text-muted-foreground">上传 HTML 文件，然后发送给指定收件人。</p>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>HTML 编辑</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>发送设置</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form className="space-y-4" onSubmit={handleSubmit}>
             <div
               className="rounded-lg border border-dashed p-6 text-center transition-shadow focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
               onDragOver={(event) => event.preventDefault()}
@@ -137,46 +134,6 @@ export function EmailSender() {
                 <p id="html-file-error" role="alert" className="mt-2 text-sm text-destructive">{fieldError.text}</p>
               ) : null}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="html-source">HTML 源码</Label>
-              <Textarea
-                id="html-source"
-                value={html}
-                onChange={(event) => setHtml(event.target.value)}
-                placeholder="上传文件后可在这里继续编辑"
-                className="min-h-96 font-mono text-sm"
-                spellCheck={false}
-                aria-invalid={fieldError?.field === "html"}
-                aria-describedby={fieldError?.field === "html" ? "html-source-error" : undefined}
-              />
-              {fieldError?.field === "html" ? (
-                <p id="html-source-error" role="alert" className="text-sm text-destructive">{fieldError.text}</p>
-              ) : null}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>邮件预览</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <iframe
-              title="邮件预览"
-              sandbox=""
-              srcDoc={deferredHtml || "<p style='color:#71717a'>上传或输入 HTML 后将在这里预览。</p>"}
-              className="h-[32rem] w-full rounded-lg border bg-white"
-            />
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>发送设置</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <Label htmlFor="recipients">收件人邮箱</Label>
               <Textarea

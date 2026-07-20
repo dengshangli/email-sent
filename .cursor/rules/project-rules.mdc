@@ -1,0 +1,10 @@
+---
+description: 项目规则统一入口，所有规则以项目根目录 AGENTS.md 为唯一来源
+alwaysApply: true
+---
+
+# 项目规则
+
+所有项目规则统一维护在项目根目录的 `AGENTS.md`（其中引用了 AI 工作流规则 `AI-WORKFLOW.md`），请阅读并严格遵循这些文件，不要在本目录重复维护规则内容。
+
+@AGENTS.md

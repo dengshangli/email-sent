@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type DragEvent, type FormEvent } from "react";
+import { useEffect, useState, useTransition, type DragEvent, type FormEvent } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +19,8 @@ type SendResult = {
   error?: string;
 };
 
+const RECIPIENTS_STORAGE_KEY = "email-sender:recipients";
+
 export function EmailSender() {
   const [fileName, setFileName] = useState("");
   const [html, setHtml] = useState("");
@@ -27,6 +29,17 @@ export function EmailSender() {
   const [notice, setNotice] = useState<Notice>(null);
   const [fieldError, setFieldError] = useState<FieldError>(null);
   const [sending, startSending] = useTransition();
+
+  // 服务端渲染时拿不到 localStorage，挂载后再恢复上次输入
+  useEffect(() => {
+    const saved = localStorage.getItem(RECIPIENTS_STORAGE_KEY);
+    if (saved) setRecipientsInput(saved);
+  }, []);
+
+  function updateRecipientsInput(value: string) {
+    setRecipientsInput(value);
+    localStorage.setItem(RECIPIENTS_STORAGE_KEY, value);
+  }
 
   async function loadFile(file?: File) {
     setNotice(null);
@@ -146,7 +159,7 @@ export function EmailSender() {
                 aria-label="选择 HTML 文件"
                 type="file"
                 accept=".html,text/html"
-                className="sr-only"
+                className="sr-only w-px"
                 aria-invalid={fieldError?.field === "file"}
                 aria-describedby={fieldError?.field === "file" ? "html-file-error" : undefined}
                 onChange={(event) => void loadFile(event.target.files?.[0])}
@@ -162,7 +175,7 @@ export function EmailSender() {
               <Textarea
                 id="recipients"
                 value={recipientsInput}
-                onChange={(event) => setRecipientsInput(event.target.value)}
+                onChange={(event) => updateRecipientsInput(event.target.value)}
                 placeholder="user@example.com，other@example.com"
                 aria-invalid={fieldError?.field === "recipients"}
                 aria-describedby={fieldError?.field === "recipients" ? "recipients-error" : undefined}

@@ -1,5 +1,12 @@
 import { expect, test } from "@playwright/test";
 
+test("收件人输入保存到 localStorage 并在刷新后恢复", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("收件人邮箱").fill("a@example.com，b@example.com");
+  await page.reload();
+  await expect(page.getByLabel("收件人邮箱")).toHaveValue("a@example.com，b@example.com");
+});
+
 test("上传、校验并发送 HTML 邮件", async ({ page }) => {
   let requestCount = 0;
   let payload: unknown;

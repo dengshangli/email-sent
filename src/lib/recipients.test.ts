@@ -30,6 +30,23 @@ test("识别常见域名拼写错误并给出建议", () => {
   ]);
 });
 
+test("识别未穷举的近似拼写错误（编辑距离 1）", () => {
+  assert.deepEqual(parseRecipients("dengshangli001@gmil.com").suspicious, [
+    { email: "dengshangli001@gmil.com", suggestedDomain: "gmail.com" },
+  ]);
+  assert.deepEqual(parseRecipients("a@gmai.com, b@hotmall.com").suspicious, [
+    { email: "a@gmai.com", suggestedDomain: "gmail.com" },
+    { email: "b@hotmall.com", suggestedDomain: "hotmail.com" },
+  ]);
+});
+
+test("正确域名与无关域名不被误报", () => {
+  const result = parseRecipients(
+    "a@gmail.com, b@qq.com, c@163.com, d@example.com, e@mycompany.cn",
+  );
+  assert.deepEqual(result.suspicious, []);
+});
+
 test("超过 50 个唯一地址时报告超限", () => {
   const raw = Array.from({ length: 51 }, (_, index) => `user${index}@example.com`).join(",");
   assert.equal(parseRecipients(raw).exceedsLimit, true);

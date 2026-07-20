@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useState, useTransition, type DragEvent, type FormEvent } from "react";
+import {
+  useState,
+  useSyncExternalStore,
+  useTransition,
+  type DragEvent,
+  type FormEvent,
+} from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,25 +27,35 @@ type SendResult = {
 
 const RECIPIENTS_STORAGE_KEY = "email-sender:recipients";
 
+// 以 localStorage 为收件人输入的数据源，服务端渲染时回退为空字符串
+const recipientsListeners = new Set<() => void>();
+
+function subscribeRecipients(listener: () => void) {
+  recipientsListeners.add(listener);
+  return () => recipientsListeners.delete(listener);
+}
+
+function getRecipientsSnapshot() {
+  return localStorage.getItem(RECIPIENTS_STORAGE_KEY) ?? "";
+}
+
+function setStoredRecipients(value: string) {
+  localStorage.setItem(RECIPIENTS_STORAGE_KEY, value);
+  recipientsListeners.forEach((listener) => listener());
+}
+
 export function EmailSender() {
   const [fileName, setFileName] = useState("");
   const [html, setHtml] = useState("");
-  const [recipientsInput, setRecipientsInput] = useState("");
+  const recipientsInput = useSyncExternalStore(
+    subscribeRecipients,
+    getRecipientsSnapshot,
+    () => "",
+  );
   const [subject, setSubject] = useState("测试邮件");
   const [notice, setNotice] = useState<Notice>(null);
   const [fieldError, setFieldError] = useState<FieldError>(null);
   const [sending, startSending] = useTransition();
-
-  // 服务端渲染时拿不到 localStorage，挂载后再恢复上次输入
-  useEffect(() => {
-    const saved = localStorage.getItem(RECIPIENTS_STORAGE_KEY);
-    if (saved) setRecipientsInput(saved);
-  }, []);
-
-  function updateRecipientsInput(value: string) {
-    setRecipientsInput(value);
-    localStorage.setItem(RECIPIENTS_STORAGE_KEY, value);
-  }
 
   async function loadFile(file?: File) {
     setNotice(null);
@@ -175,7 +191,7 @@ export function EmailSender() {
               <Textarea
                 id="recipients"
                 value={recipientsInput}
-                onChange={(event) => updateRecipientsInput(event.target.value)}
+                onChange={(event) => setStoredRecipients(event.target.value)}
                 placeholder="user@example.com，other@example.com"
                 aria-invalid={fieldError?.field === "recipients"}
                 aria-describedby={fieldError?.field === "recipients" ? "recipients-error" : undefined}

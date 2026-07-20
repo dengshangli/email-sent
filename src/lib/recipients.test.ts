@@ -11,8 +11,23 @@ test("解析多种分隔符、忽略大小写去重并报告无效邮箱", () =>
   assert.deepEqual(result, {
     recipients: ["Alice@example.com", "bob@example.com"],
     invalid: ["错误地址"],
+    suspicious: [],
     exceedsLimit: false,
   });
+});
+
+test("识别常见域名拼写错误并给出建议", () => {
+  const result = parseRecipients("dengshangli.001@gamil.com, ok@gmail.com，foo@qq.con");
+
+  assert.deepEqual(result.suspicious, [
+    { email: "dengshangli.001@gamil.com", suggestedDomain: "gmail.com" },
+    { email: "foo@qq.con", suggestedDomain: "qq.com" },
+  ]);
+  assert.deepEqual(result.recipients, [
+    "dengshangli.001@gamil.com",
+    "ok@gmail.com",
+    "foo@qq.con",
+  ]);
 });
 
 test("超过 50 个唯一地址时报告超限", () => {

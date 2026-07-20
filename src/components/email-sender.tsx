@@ -66,6 +66,15 @@ export function EmailSender() {
       setFieldError({ field: "recipients", text: `以下邮箱格式不正确：${parsed.invalid.join("、")}` });
       return;
     }
+    if (parsed.suspicious.length) {
+      setFieldError({
+        field: "recipients",
+        text: `以下邮箱域名疑似拼写错误：${parsed.suspicious
+          .map((item) => `${item.email}（是否想输入 @${item.suggestedDomain}？）`)
+          .join("、")}`,
+      });
+      return;
+    }
     if (parsed.exceedsLimit) {
       setFieldError({ field: "recipients", text: "每次最多发送给 50 个收件人。" });
       return;

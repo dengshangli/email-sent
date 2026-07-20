@@ -75,6 +75,13 @@ test("上传、校验并发送 HTML 邮件", async ({ page }) => {
   ).toContainText("以下邮箱格式不正确：错误地址");
   expect(requestCount).toBe(0);
 
+  await page.getByLabel("收件人邮箱").fill("dengshangli.001@gamil.com");
+  await page.getByRole("button", { name: "发送邮件" }).click();
+  await expect(
+    page.getByLabel("收件人邮箱").locator("..").getByRole("alert"),
+  ).toContainText("dengshangli.001@gamil.com（是否想输入 @gmail.com？）");
+  expect(requestCount).toBe(0);
+
   await page.getByLabel("收件人邮箱").fill("a@example.com，b@example.com");
   const sendButton = page.getByRole("button", { name: "发送邮件" });
   await sendButton.click();
